@@ -1,0 +1,30 @@
+﻿[
+  {
+    "Nome": "Carlos Silva",
+    "Funcao": "Auxiliar de Escritório",
+    "Salario": 2500,
+    "DataAdmissao": "2019-04-03T00:00:00",
+    "DataDemissao": null
+  },
+  {
+    "Nome": "Robson Santos",
+    "Funcao": "Programador Júnior",
+    "Salario": 3500,
+    "DataAdmissao": "2025-02-02T00:00:00",
+    "DataDemissao": null
+  },
+  {
+    "Nome": "Rúbio Sávio",
+    "Funcao": "Gerente",
+    "Salario": 20000,
+    "DataAdmissao": "1999-02-01T00:00:00",
+    "DataDemissao": null
+  },
+  {
+    "Nome": "Fernando Domingues",
+    "Funcao": "Engenheiro de Software",
+    "Salario": 15000,
+    "DataAdmissao": "2024-03-18T00:00:00",
+    "DataDemissao": null
+  }
+]
