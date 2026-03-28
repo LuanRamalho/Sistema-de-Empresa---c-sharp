@@ -26,7 +26,7 @@ namespace SistemaDeEmpresa
         private GroupBox gbCadastro = null!;
         private Label lblTituloGeral = null!;
         private Label lblSímboloDólar = null!;
-        private DataGridView dgvFuncionarios = null!;
+        private FlowLayoutPanel flpCards = null!;
 
         // Repositório
         private FuncionarioRepository repo = new FuncionarioRepository();
@@ -52,7 +52,7 @@ namespace SistemaDeEmpresa
 
         private void InitializeComponent() { }
 
-        // --- Interface Gráfica Mantida Intacta ---
+        // --- Interface Gráfica ---
         private void InicializarInterfaceColorida()
         {
             this.Text = "Gestão Profissional de Funcionários - Empresa";
@@ -119,42 +119,96 @@ namespace SistemaDeEmpresa
             btnLimpar = CriarBotaoModerno("⟳ Limpar", 160, 330, 120, "#7f8c8d");
             gbCadastro.Controls.Add(btnLimpar);
 
+            // Vinculando os eventos de clique aos botões
             btnLimpar.Click += (s, e) => LimparCampos();
-
-            dgvFuncionarios = new DataGridView()
-            {
-                Top = 300, Left = 20, Width = 860, Height = 350,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                ReadOnly = true, MultiSelect = false,
-                BackgroundColor = ColorTranslator.FromHtml("#2d2d2d"), 
-                BorderStyle = BorderStyle.None,
-                EnableHeadersVisualStyles = false, 
-                GridColor = ColorTranslator.FromHtml("#444444"), 
-                RowHeadersVisible = false 
-            };
-
-            dgvFuncionarios.ColumnHeadersDefaultCellStyle.BackColor = ColorTranslator.FromHtml("#007acc"); 
-            dgvFuncionarios.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            dgvFuncionarios.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            dgvFuncionarios.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            dgvFuncionarios.ColumnHeadersHeight = 40;
-
-            dgvFuncionarios.DefaultCellStyle.BackColor = ColorTranslator.FromHtml("#2d2d2d");
-            dgvFuncionarios.DefaultCellStyle.ForeColor = Color.White;
-            dgvFuncionarios.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
-            dgvFuncionarios.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#4ecdc4"); 
-            dgvFuncionarios.DefaultCellStyle.SelectionForeColor = Color.Black;
-            dgvFuncionarios.RowTemplate.Height = 35; 
-
-            this.Controls.Add(dgvFuncionarios);
-
             btnAdicionar.Click += btnAdicionar_Click;
             btnEditar.Click += btnEditar_Click;
             btnExcluir.Click += btnExcluir_Click;
-            dgvFuncionarios.SelectionChanged += dgvFuncionarios_SelectionChanged;
+
+            flpCards = new FlowLayoutPanel()
+            {
+                Top = 300,
+                Left = 20,
+                Width = 860,
+                Height = 350,
+                AutoScroll = true, 
+                BackColor = Color.Transparent,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true 
+            };
+            this.Controls.Add(flpCards);
 
             Application.EnableVisualStyles();
+        }
+
+        private Panel CriarCardFuncionario(Funcionario f)
+        {
+            Panel card = new Panel()
+            {
+                Width = 260,
+                Height = 150,
+                BackColor = ColorTranslator.FromHtml("#2d2d2d"),
+                Margin = new Padding(10),
+                Cursor = Cursors.Hand
+            };
+
+            card.Paint += (s, e) => {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = CriarPathArredondado(new Rectangle(0, 0, card.Width - 1, card.Height - 1), 15))
+                using (Pen pen = new Pen(ColorTranslator.FromHtml("#4ecdc4"), 2))
+                {
+                    e.Graphics.DrawPath(pen, path);
+                }
+            };
+
+            Label lblNomeCard = new Label() {
+                Text = f.Nome.ToUpper(),
+                Top = 15, Left = 15, Width = 230,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = ColorTranslator.FromHtml("#4ecdc4")
+            };
+
+            Label lblCargoCard = new Label() {
+                Text = f.Funcao,
+                Top = 45, Left = 15, Width = 230,
+                Font = new Font("Segoe UI", 10F, FontStyle.Italic),
+                ForeColor = Color.White
+            };
+
+            Label lblInfo = new Label() {
+                Text = $"Salário: {f.SalarioFormatado}\nAdmissão: {f.DataAdmissaoFormatada}",
+                Top = 75, Left = 15, Width = 230, Height = 50,
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.LightGray
+            };
+
+            // Evento de clique unificado
+            EventHandler cardClick = (s, e) => SelecionarFuncionarioParaEdicao(f);
+            card.Click += cardClick;
+            lblNomeCard.Click += cardClick;
+            lblCargoCard.Click += cardClick;
+            lblInfo.Click += cardClick;
+
+            card.Controls.Add(lblNomeCard);
+            card.Controls.Add(lblCargoCard);
+            card.Controls.Add(lblInfo);
+
+            return card;
+        }
+
+        private void SelecionarFuncionarioParaEdicao(Funcionario f)
+        {
+            txtNome.Text = f.Nome;
+            txtFuncao.Text = f.Funcao;
+            txtSalario.Text = f.Salario.ToString("N2");
+            txtDataAdmissao.Text = f.DataAdmissao.ToString("dd/MM/yyyy");
+            txtDataDemissao.Text = f.DataDemissao.HasValue ? f.DataDemissao.Value.ToString("dd/MM/yyyy") : "";
+
+            gbCadastro.Text = $" Editando Colaborador: {f.Nome} ";
+            btnAdicionar.Enabled = false;
+            
+            // Armazena o funcionário atual na propriedade Tag do Form para edição/exclusão
+            this.Tag = f; 
         }
 
         private TextBox CriarTextBoxCustomizado(int top, int left, int width, HorizontalAlignment textAlign = HorizontalAlignment.Left)
@@ -212,46 +266,15 @@ namespace SistemaDeEmpresa
         // --- Lógica de Negócios ---
         private void CarregarFuncionarios()
         {
-            dgvFuncionarios.DataSource = null;
+            flpCards.Controls.Clear();
             List<Funcionario> funcionarios = repo.GetAll();
-            dgvFuncionarios.DataSource = funcionarios;
 
-            // ID não existe mais, removida a linha de ocultar ID
-            OcultarColunaSeExistir("Salario");
-            OcultarColunaSeExistir("DataAdmissao");
-            OcultarColunaSeExistir("DataDemissao");
-
-            ConfigurarColunaSeExistir("Nome", "Nome do Colaborador", HorizontalAlignment.Left);
-            ConfigurarColunaSeExistir("Funcao", "Função / Cargo", HorizontalAlignment.Left);
-            ConfigurarColunaSeExistir("SalarioFormatado", "Salário (R$)", HorizontalAlignment.Right, 2);
-            ConfigurarColunaSeExistir("DataAdmissaoFormatada", "Admissão", HorizontalAlignment.Center, 4);
-            ConfigurarColunaSeExistir("DataDemissaoFormatada", "Demissão", HorizontalAlignment.Center, 5);
-
-            dgvFuncionarios.ClearSelection(); 
-            LimparCampos();
-        }
-
-        private void OcultarColunaSeExistir(string nomeColuna)
-        {
-            if (dgvFuncionarios.Columns.Contains(nomeColuna))
-                dgvFuncionarios.Columns[nomeColuna].Visible = false;
-        }
-
-        private void ConfigurarColunaSeExistir(string nomeColuna, string titulo, HorizontalAlignment alinhamento, int displayIndex = -1)
-        {
-            if (dgvFuncionarios.Columns.Contains(nomeColuna))
+            foreach (var f in funcionarios)
             {
-                var col = dgvFuncionarios.Columns[nomeColuna];
-                col.HeaderText = titulo;
-                if (displayIndex != -1) col.DisplayIndex = displayIndex;
-                
-                switch (alinhamento)
-                {
-                    case HorizontalAlignment.Left: col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft; break;
-                    case HorizontalAlignment.Right: col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight; break;
-                    case HorizontalAlignment.Center: col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter; break;
-                }
+                flpCards.Controls.Add(CriarCardFuncionario(f));
             }
+
+            LimparCampos();
         }
 
         private void btnAdicionar_Click(object? sender, EventArgs? e)
@@ -270,7 +293,6 @@ namespace SistemaDeEmpresa
                     };
                     repo.Add(funcionario);
                     CarregarFuncionarios();
-                    LimparCampos();
                     MessageBox.Show("Funcionário adicionado com sucesso!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -282,14 +304,14 @@ namespace SistemaDeEmpresa
 
         private void btnEditar_Click(object? sender, EventArgs? e)
         {
-            if (dgvFuncionarios.CurrentRow == null)
+            // Busca o funcionário que foi salvo na Tag ao clicar no card
+            var funcionario = this.Tag as Funcionario;
+            
+            if (funcionario == null)
             {
-                MessageBox.Show("Selecione um funcionário na tabela para editar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Clique em um card de funcionário para editá-lo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            var funcionario = dgvFuncionarios.CurrentRow.DataBoundItem as Funcionario;
-            if (funcionario == null) return;
 
             if (ValidarCampos())
             {
@@ -303,7 +325,6 @@ namespace SistemaDeEmpresa
 
                     repo.Update(funcionario);
                     CarregarFuncionarios();
-                    LimparCampos();
                     MessageBox.Show("Dados do funcionário atualizados!", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -315,23 +336,21 @@ namespace SistemaDeEmpresa
         
         private void btnExcluir_Click(object? sender, EventArgs? e)
         {
-            if (dgvFuncionarios.CurrentRow == null)
+            // Busca o funcionário que foi salvo na Tag ao clicar no card
+            var funcionario = this.Tag as Funcionario;
+            
+            if (funcionario == null)
             {
-                MessageBox.Show("Selecione um funcionário na tabela para excluir.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Clique em um card de funcionário para excluí-lo.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            var funcionario = dgvFuncionarios.CurrentRow.DataBoundItem as Funcionario;
-            if (funcionario == null) return;
 
             if (MessageBox.Show($"Tem certeza que deseja excluir o funcionário '{funcionario.Nome}'?", "Confirmar Exclusão", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 try
                 {
-                    // Agora enviamos o objeto Funcionario direto, já que não temos ID
                     repo.Delete(funcionario);
                     CarregarFuncionarios();
-                    LimparCampos();
                     MessageBox.Show("Funcionário excluído.", "Sucesso", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -350,7 +369,9 @@ namespace SistemaDeEmpresa
             txtDataDemissao.Text = "";
             gbCadastro.Text = " Cadastro de Novo Funcionário "; 
             btnAdicionar.Enabled = true; 
-            dgvFuncionarios.ClearSelection(); 
+            
+            // Limpa a referência do funcionário selecionado
+            this.Tag = null; 
         }
 
         private bool ValidarCampos()
@@ -370,23 +391,6 @@ namespace SistemaDeEmpresa
         private void MostrarAviso(string mensagem)
         {
             MessageBox.Show(mensagem, "Validação", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        }
-
-        private void dgvFuncionarios_SelectionChanged(object? sender, EventArgs? e)
-        {
-            if (dgvFuncionarios.CurrentRow == null || !dgvFuncionarios.Focused) return;
-            
-            var funcionario = dgvFuncionarios.CurrentRow.DataBoundItem as Funcionario;
-            if (funcionario == null) return;
-
-            txtNome.Text = funcionario.Nome;
-            txtFuncao.Text = funcionario.Funcao;
-            txtSalario.Text = funcionario.Salario.ToString("N2");
-            txtDataAdmissao.Text = funcionario.DataAdmissao.ToString("dd/MM/yyyy");
-            txtDataDemissao.Text = funcionario.DataDemissao.HasValue ? funcionario.DataDemissao.Value.ToString("dd/MM/yyyy") : "";
-
-            gbCadastro.Text = $" Editando Colaborador: {funcionario.Nome} ";
-            btnAdicionar.Enabled = false; 
         }
     }
 }
